@@ -1,0 +1,5 @@
+{
+  "name": "學生生存神器 (Student Survival Toolkit)",
+  "description": "專為學生設計的生存工具箱，包含成績計算、考試倒數、心理測驗與地獄梗問答。",
+  "requestFramePermissions": []
+}
