@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, Plus, Trash2, Calendar } from 'lucide-react';
+import { Heart, Plus, Trash2, Calendar, Image as ImageIcon, X } from 'lucide-react';
 
 interface MoodEntry {
   id: string;
   date: string;
   mood: 'happy' | 'neutral' | 'sad' | 'angry' | 'dead';
   note: string;
+  image?: string;
 }
 
 const Mood: React.FC = () => {
@@ -17,6 +18,7 @@ const Mood: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [selectedMood, setSelectedMood] = useState<MoodEntry['mood']>('neutral');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem('mood_entries', JSON.stringify(entries));
@@ -30,15 +32,28 @@ const Mood: React.FC = () => {
     { type: 'dead', emoji: '💀', label: '崩潰', color: 'bg-purple-100 text-purple-700' },
   ];
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const addEntry = () => {
     const entry: MoodEntry = {
       id: Date.now().toString(),
       date: new Date().toLocaleString(),
       mood: selectedMood,
       note: newNote,
+      image: selectedImage || undefined,
     };
     setEntries([entry, ...entries]);
     setNewNote('');
+    setSelectedImage(null);
     setShowForm(false);
   };
 
@@ -90,6 +105,31 @@ const Mood: React.FC = () => {
               placeholder="寫點什麼吧..."
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all mb-4 h-24 resize-none"
             />
+            
+            <div className="mb-6">
+              {!selectedImage ? (
+                <label className="flex items-center justify-center gap-2 w-full py-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors text-gray-500">
+                  <ImageIcon className="w-5 h-5" />
+                  <span className="font-medium text-sm">放張照片紀錄一下？</span>
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                </label>
+              ) : (
+                <div className="relative group">
+                  <img 
+                    src={selectedImage} 
+                    alt="Preview" 
+                    className="w-full h-48 object-cover rounded-xl shadow-sm"
+                  />
+                  <button
+                    onClick={() => setSelectedImage(null)}
+                    className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={addEntry}
               className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all"
@@ -133,7 +173,16 @@ const Mood: React.FC = () => {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-gray-800 font-medium">{entry.note || '（沒有備註）'}</p>
+                  <p className="text-gray-800 font-medium whitespace-pre-wrap">{entry.note || '（沒有備註）'}</p>
+                  {entry.image && (
+                    <div className="mt-3 overflow-hidden rounded-xl border border-gray-100 shadow-sm">
+                      <img 
+                        src={entry.image} 
+                        alt="Mood" 
+                        className="w-full max-h-80 object-cover hover:scale-105 transition-transform duration-500" 
+                      />
+                    </div>
+                  )}
                 </div>
               </motion.div>
             );

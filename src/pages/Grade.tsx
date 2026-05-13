@@ -3,14 +3,22 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Calculator, CheckCircle2, XCircle, Clock, Info } from 'lucide-react';
 
 const Grade: React.FC = () => {
-  const [mode, setMode] = useState<'average' | 'target'>('average');
-  const [scores, setScores] = useState({ usual: '', midterm: '', final: '', first: '', second: '', target: '60' });
-  const [result, setResult] = useState<number | null>(null);
+  const [mode, setMode] = useState<'usual' | 'target'>('usual');
+  const [scores, setScores] = useState({ 
+    first: '', second: '', third: '', usual: '', target: '60' 
+  });
+  const [usualResult, setUsualResult] = useState<number | null>(null);
   const [targetResult, setTargetResult] = useState<number | null>(null);
 
-  const calculateAverage = () => {
-    const avg = (Number(scores.usual) + Number(scores.midterm) + Number(scores.final)) / 3;
-    setResult(Math.round(avg * 10) / 10);
+  const calculateUsual = () => {
+    const first = Number(scores.first) || 0;
+    const second = Number(scores.second) || 0;
+    const third = Number(scores.third) || 0;
+    const target = Number(scores.target) || 60;
+    
+    // Usual * 0.4 = Average - (Exam1 * 0.15 + Exam2 * 0.15 + Exam3 * 0.3)
+    const required = (target - (0.15 * first + 0.15 * second + 0.3 * third)) / 0.4;
+    setUsualResult(Math.round(required * 10) / 10);
   };
 
   const calculateTarget = () => {
@@ -27,19 +35,19 @@ const Grade: React.FC = () => {
     <div className="max-w-2xl mx-auto px-4 py-12">
       <div className="text-center mb-12">
         <h1 className="text-3xl font-black text-gray-900">成績計算機</h1>
-        <p className="text-gray-500">快速算出你的平均分數，看看會不會被當。</p>
+        <p className="text-gray-500">算出你的平時成績預估，或計算段考目標。</p>
       </div>
 
       <div className="bg-white rounded-3xl shadow-xl shadow-indigo-100/50 border border-indigo-50 overflow-hidden">
         <div className="flex border-b border-gray-100">
           <button
-            onClick={() => { setMode('average'); setResult(null); setTargetResult(null); }}
-            className={`flex-1 py-4 font-bold text-sm transition-all ${mode === 'average' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+            onClick={() => { setMode('usual'); setUsualResult(null); setTargetResult(null); }}
+            className={`flex-1 py-4 font-bold text-sm transition-all ${mode === 'usual' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-            算平均分數
+            算平時成績
           </button>
           <button
-            onClick={() => { setMode('target'); setResult(null); setTargetResult(null); }}
+            onClick={() => { setMode('target'); setUsualResult(null); setTargetResult(null); }}
             className={`flex-1 py-4 font-bold text-sm transition-all ${mode === 'target' ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50'}`}
           >
             算三段目標
@@ -47,12 +55,17 @@ const Grade: React.FC = () => {
         </div>
 
         <div className="p-8 space-y-6">
-          {mode === 'average' ? (
+          {mode === 'usual' ? (
             <div className="space-y-4">
+              <div className="flex items-start gap-3 p-4 bg-indigo-50 rounded-2xl text-indigo-700 text-sm font-medium mb-4">
+                <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <p>輸入三次段考分數，計算老師需要給你多少「平時分」才能及格/達標。</p>
+              </div>
               {[
-                { key: 'usual', label: '平時成績' },
-                { key: 'midterm', label: '期中成績' },
-                { key: 'final', label: '期末成績' },
+                { key: 'first', label: '一段成績' },
+                { key: 'second', label: '二段成績' },
+                { key: 'third', label: '三段成績' },
+                { key: 'target', label: '目標總平均' },
               ].map((item) => (
                 <div key={item.key} className="space-y-1">
                   <label className="text-sm font-bold text-gray-600 ml-1">{item.label}</label>
@@ -60,16 +73,16 @@ const Grade: React.FC = () => {
                     type="number"
                     value={scores[item.key as keyof typeof scores]}
                     onChange={(e) => setScores({ ...scores, [item.key]: e.target.value })}
-                    placeholder="請輸入分數 (0-100)"
-                    className="w-full px-6 py-4 rounded-2xl border-2 border-gray-50 focus:border-indigo-500 focus:outline-none transition-all text-lg"
+                    placeholder={item.key === 'target' ? "預設為 60" : "請輸入分數"}
+                    className="w-full px-6 py-4 rounded-2xl border-2 border-gray-100 focus:border-indigo-500 focus:outline-none transition-all text-lg"
                   />
                 </div>
               ))}
               <button
-                onClick={calculateAverage}
+                onClick={calculateUsual}
                 className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold text-lg hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all mt-4"
               >
-                計算平均
+                計算所需平時成績
               </button>
             </div>
           ) : (
@@ -105,19 +118,21 @@ const Grade: React.FC = () => {
           )}
 
           <AnimatePresence>
-            {result !== null && mode === 'average' && (
+            {usualResult !== null && mode === 'usual' && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className={`p-8 rounded-3xl text-center space-y-2 ${result >= 60 ? 'bg-emerald-50 text-emerald-700 border-2 border-emerald-100' : 'bg-rose-50 text-rose-700 border-2 border-rose-100'}`}
+                className={`p-8 rounded-3xl text-center space-y-2 ${usualResult <= 100 ? 'bg-emerald-50 text-emerald-700 border-2 border-emerald-100' : 'bg-rose-50 text-rose-700 border-2 border-rose-100'}`}
               >
-                <div className="text-sm font-bold uppercase tracking-widest opacity-60">總平均分數</div>
-                <div className="text-6xl font-black">{result}</div>
+                <div className="text-sm font-bold uppercase tracking-widest opacity-60">所需平時分數</div>
+                <div className="text-6xl font-black">{usualResult}</div>
                 <div className="flex items-center justify-center gap-2 font-bold text-xl mt-4">
-                  {result >= 60 ? (
-                    <><CheckCircle2 className="w-6 h-6" /> 恭喜及格！安全下莊。</>
+                  {usualResult <= 0 ? (
+                    <><CheckCircle2 className="w-6 h-6" /> 即使老師給 0 分你也會過！</>
+                  ) : usualResult <= 100 ? (
+                    <><Clock className="w-6 h-6" /> 只要老師稍微「撈」你一下就過了！</>
                   ) : (
-                    <><XCircle className="w-6 h-6" /> 慘了被當... 準備重修吧。</>
+                    <><XCircle className="w-6 h-6" /> 老師撈不動了，分數爆表了。</>
                   )}
                 </div>
               </motion.div>
